@@ -1,0 +1,19 @@
+{
+  "$comment": "Só o que difere de lib/config.mjs (DEFAULT_CONFIG). Chaves que começam com $ são comentários.",
+  "output": { "name": "mysticall-soul-final" },
+  "format": { "width": 1080, "height": 1920, "fps": 16, "$fps": "CFR 16 vem do contrato técnico; mudar aqui se o briefing pedir 30/60." },
+  "brand": {
+    "name": null,
+    "accent": "#9D5CFF",
+    "accentProvisional": true,
+    "$accent": "Cor PROVISÓRIA até receber a identidade da marca. Uma única cor de destaque.",
+    "logo": null,
+    "$logo": "Ex.: \"entrada/marca/logo.png\" — aparece no CTA final, se houver."
+  },
+  "captions": { "language": "pt-BR", "maxWordsPerPage": 3, "centerY": 0.62 },
+  "audio": {
+    "targetLufs": -14,
+    "music": { "mode": "synth", "bpm": 112, "seed": 7, "$mode": "synth = trilha gerada em código; file = usar entrada/musica/; none = sem trilha" }
+  },
+  "expectedVideos": 3
+}

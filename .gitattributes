@@ -1,0 +1,5 @@
+# Vídeos e áudios originais ficam no Git LFS (arquivos grandes).
+entrada/videos/** filter=lfs diff=lfs merge=lfs -text
+entrada/musica/** filter=lfs diff=lfs merge=lfs -text
+entrada/videos/.gitkeep !filter !diff !merge text
+entrada/musica/.gitkeep !filter !diff !merge text
