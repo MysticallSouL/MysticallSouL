@@ -64,3 +64,10 @@ test('detecta ponteiro do Git LFS', () => {
   fs.writeFileSync(f, 'version https://git-lfs.github.com/spec/v1\noid sha256:abc\nsize 123\n');
   assert.equal(isLfsPointer(f), true);
 });
+
+test('o modelo projeto/config.exemplo.json é válido', async () => {
+  const { readJson } = await import('../../lib/fsutil.mjs');
+  const { CODE_ROOT } = await import('../../lib/paths.mjs');
+  const cfg = deepMerge(DEFAULT_CONFIG, readJson(path.join(CODE_ROOT, 'projeto', 'config.exemplo.json')));
+  assert.deepEqual(validateConfig(cfg), []);
+});

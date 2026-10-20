@@ -100,9 +100,9 @@ com um pedido explícito do usuário, o pedido vence; avise qual regra foi afeta
 | `entrada/videos/` | Os 3 vídeos originais (Git LFS) |
 | `entrada/legendas/` | `<nome-do-video>.srt\|.vtt\|.json` |
 | `entrada/musica/`, `entrada/marca/` | Trilha opcional; logo e fontes |
-| `projeto/config.json` | Formato, marca, legendas, movimento, áudio (padrões em `lib/config.mjs`) |
+| `projeto/config.json` | Formato, marca, legendas, movimento, áudio (padrões em `lib/config.mjs`; fora do git, modelo em `projeto/config.exemplo.json`) |
 | `projeto/edl.json` | Montagem: clipes (`source`, `in`, `out`, `focus`, `zoom`, `speed`, `transitionIn`, `punches`), `texts` (`hook`/`cta`) e `sfx`. Criada como rascunho (vídeos inteiros) na primeira preparação |
-| `projeto/briefing.md` | Briefing editorial |
+| `projeto/briefing.md` | Briefing editorial (fora do git; modelo em `projeto/briefing.exemplo.md`) |
 | `revisao/scorecard.json` | Rodadas de revisão (trava do render final) |
 | `composition/` | Página renderizada pelo Chromium (`seek(t)`) |
 | `lib/` | Pipeline: probe, EDL, quadros, legendas, áudio, batidas, render, codificação, revisão |

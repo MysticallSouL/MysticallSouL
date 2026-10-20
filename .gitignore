@@ -16,3 +16,5 @@ entrada/marca/*
 !entrada/marca/.gitkeep
 projeto/edl.json
 revisao/scorecard.json
+projeto/config.json
+projeto/briefing.md

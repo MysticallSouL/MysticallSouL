@@ -99,7 +99,9 @@ npm test                        # testes unitários + ponta a ponta com material
 
 ## 5. Configuração
 
-`projeto/config.json` só contém o que difere dos padrões de `lib/config.mjs`. Itens pendentes:
+`projeto/config.json` só contém o que difere dos padrões de `lib/config.mjs`. Ele não vai para o git
+(repositório público): crie-o copiando `projeto/config.exemplo.json`, e o briefing a partir de
+`projeto/briefing.exemplo.md`. Itens a definir:
 
 - `brand.name`, `brand.logo` e as fontes da marca.
 - `brand.accent`: a cor `#9D5CFF` é **provisória**.
