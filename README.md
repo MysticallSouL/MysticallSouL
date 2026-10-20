@@ -3,8 +3,8 @@
 Pipeline determinístico que monta, legenda, sonoriza e renderiza vídeos verticais
 (1080 × 1920, H.264) a partir dos vídeos originais, usando Node.js, FFmpeg e Chromium (Playwright).
 
-> **Estado atual:** a infraestrutura está pronta e testada com material **sintético**. Os três
-> vídeos originais e o briefing editorial ainda não foram recebidos. Nenhuma edição real foi feita.
+> **Atenção:** este repositório é público. Vídeos, legendas, EDL, briefing e revisões de um
+> projeto real ficam fora do git (`.gitignore`) a menos que o dono decida publicá-los.
 
 ## 1. Onde colocar os vídeos
 
@@ -86,7 +86,7 @@ com a palavra falada destacada e posicionadas dentro da zona segura do TikTok.
 | Áudio | Voz: passa-altas, redução de ruído, de-esser e compressor. Trilha sintetizada ou fornecida, com ducking pela voz |
 | Batidas | Grade medida do áudio (`build/beats.json`); cortes e efeitos alinhados a ela |
 | Loudness | −14 LUFS integrado, true peak ≤ −1 dBTP (duas passagens + verificação EBU R128) |
-| Saída | H.264 High, yuv420p, BT.709, CFR 16, AAC 48 kHz, faststart, com relatório de verificação |
+| Saída | H.264 High, yuv420p, BT.709, CFR (30 fps neste projeto), AAC 48 kHz, faststart, versão sem legendas, `.srt`, cópia da EDL e relatório de verificação |
 
 Outros comandos:
 

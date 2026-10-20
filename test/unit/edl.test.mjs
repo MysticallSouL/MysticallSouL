@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { draftEdl, validateEdl, resolveClips, offBeatCuts } from '../../lib/edl.mjs';
+import { draftEdl, validateEdl, resolveClips, offBeatCuts, resolveTime } from '../../lib/edl.mjs';
 
 const probes = [
   { name: 'b.mp4', duration: 4.25 },
@@ -49,4 +49,31 @@ test('cortes fora da grade de batidas são apontados', () => {
   const clips = [{ id: 'a', start: 0 }, { id: 'b', start: 1.0 }, { id: 'c', start: 1.8 }];
   const off = offBeatCuts(clips, [0, 0.5, 1.0, 1.5, 2.0], 0.05);
   assert.deepEqual(off.map((o) => o.clip), ['c']);
+});
+
+test('âncoras {clip, t} acompanham a posição do clipe na linha do tempo', () => {
+  const edl = { clips: [
+    { id: 'a', source: 'a.mp4', in: 1, out: 3 },
+    { id: 'b', source: 'b.mp4', in: 2, out: 4, speed: 2 },
+  ] };
+  const clips = resolveClips(edl, 30);
+  assert.equal(resolveTime(2.5, clips), 2.5);
+  assert.equal(resolveTime({ clip: 'a', t: 1.5 }, clips), 0.5);
+  assert.equal(resolveTime({ clip: 'b', t: 3 }, clips), 2.5);
+});
+
+test('validação de cartões, âncoras, zoomEnd e destaques', () => {
+  const clips = [{ id: 'a', source: 'a.mp4', in: 0, out: 3, zoomEnd: 3 }];
+  const v = validateEdl({ clips, texts: [
+    { type: 'card', start: { clip: 'a', t: 0.5 }, end: { clip: 'x', t: 1 }, lines: [] },
+    { type: 'card', start: 0, end: { clip: 'a', t: 9 }, lines: [{ text: 'ok', at: { clip: 'a' } }] },
+    { type: 'card', start: 2, end: 1, lines: [{ text: 'ok' }] },
+  ], emphasis: [{ clip: 'z', word: 'x' }] }, byName);
+  for (const frag of ['zoomEnd', 'precisa de "lines"', 'clipe "x" não existe', 'fora do trecho', 'use segundos ou uma âncora', 'start < end', 'emphasis[0]']) {
+    assert.ok(v.errors.some((e) => e.includes(frag)), `faltou erro: ${frag}`);
+  }
+  const ok = validateEdl({ clips: [{ id: 'a', source: 'a.mp4', in: 0, out: 3, zoom: 1, zoomEnd: 1.05 }], texts: [
+    { type: 'card', start: { clip: 'a', t: 0.5 }, end: 2, lines: [{ text: 'X', accent: true }, { text: 'Y', at: { clip: 'a', t: 1 } }] },
+  ], emphasis: [{ clip: 'a', word: 'teste' }] }, byName);
+  assert.deepEqual(ok.errors, []);
 });

@@ -9,7 +9,15 @@ com um pedido explícito do usuário, o pedido vence; avise qual regra foi afeta
   de renderização. Texto na tela vem do briefing ou dos próprios vídeos; legendas vêm de arquivos
   fornecidos ou de transcrição revisada por uma pessoa.
 - Transcrição automática (`scripts/transcrever.py`) sai com `"reviewed": false` e não é final até
-  revisão humana. Não "corrija" falas por conta própria: só transcreva o que é dito.
+  revisão humana. Não "corrija" falas por conta própria: só transcreva o que é dito. Correções
+  aceitáveis: grafia verificada de nomes, caixa e pontuação nos pontos de corte. Palavras incertas
+  ficam fora da montagem, não são adivinhadas.
+- No ambiente em nuvem o Hugging Face é bloqueado; a transcrição usada foi o Whisper small ONNX do
+  pacote npm `sts-whisper-small` (terceiro, instalado com `--ignore-scripts` fora do repositório,
+  com autorização explícita do usuário) rodando em `@huggingface/transformers`. Não instale de novo
+  sem nova autorização.
+- Conteúdo político: preservar posição e tom do autor, não atribuir falas a terceiros, não tirar
+  de contexto, não apresentar alegações como fatos verificados. Detalhes em `projeto/briefing.md`.
 - O material de teste (`test/helpers/fixtures.mjs`) é sintético e não pode ser apresentado como
   trabalho real.
 - `projeto/briefing.md` com `STATUS: PENDENTE` significa que **não há decisão editorial**: corte
@@ -24,10 +32,26 @@ com um pedido explícito do usuário, o pedido vence; avise qual regra foi afeta
   `npm run verificar` e `node render.mjs` rodam um lint (`lib/lint.mjs`) que bloqueia isso.
   A única exceção é `composition/preview.js`, que só roda no modo de pré-visualização.
 - Ruído só com semente: `mulberry32` / `noiseAt` de `composition/lib/noise.js`.
-- Renderize com `node render.mjs`. Saída em H.264 High, yuv420p, BT.709, **CFR 16**, 1080×1920,
-  AAC 48 kHz, faststart. A taxa de quadros está em `projeto/config.json` (`format.fps`).
+- Renderize com `node render.mjs`. Saída em H.264 High, yuv420p, BT.709, CFR, 1080×1920,
+  AAC 48 kHz, faststart. O contrato define **CFR 16**; o projeto atual usa **30 fps** porque o
+  briefing pediu a taxa da gravação original (`format.fps` em `projeto/config.json`).
+- O render final entrega `saida/<nome>.mp4`, `<nome>-sem-legendas.mp4`, `<nome>.srt`,
+  `<nome>-edl.json` e `<nome>.json` (verificações).
 - Eventos visuais caem no quadro que contém o instante (`floor(t·fps)/fps`). As fronteiras de
   clipe ficam na grade de quadros.
+
+## Recursos de edição (EDL)
+
+- Clipes: `in`/`out` na fonte, `focus` (origem do zoom), `zoom` → `zoomEnd` (aproximação lenta),
+  `transitionIn` (`cut`/`whip`), `punches`. Vários clipes podem vir da mesma fonte (trocar o
+  enquadramento sem cortar a fala).
+- Tempos de textos e efeitos aceitam âncoras `{"clip": "<id>", "t": <segundos na fonte>}`, que
+  acompanham a fala quando os cortes mudam.
+- `texts`: `hook`/`cta` (palavras cinéticas) e `card` (linhas em blocos sólidos no topo, cada uma
+  com `at` e `accent` opcionais; tamanho ajustado para caber numa linha).
+- `emphasis`: `[{clip, word}]` — destaque pontual da palavra na legenda (bloco na cor de destaque).
+- Cortes de fala: escolha pontos de corte na forma de onda (silêncio) e confira a emenda
+  retranscrevendo a voz montada (`build/audio/voz.wav`) — repetições e sílabas cortadas aparecem.
 
 ## Visual
 

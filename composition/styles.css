@@ -13,6 +13,7 @@
   --safe-right: 150px;
   --caption-size: 92px;
   --caption-center: 0.62;
+  --caption-font: var(--font-display);
 }
 
 * {
@@ -67,7 +68,7 @@ body {
   column-gap: 0.24em;
   row-gap: 0.02em;
   translate: 0 -50%;
-  font-family: var(--font-display);
+  font-family: var(--caption-font);
   font-size: var(--caption-size);
   line-height: 1.04;
   text-align: center;
@@ -84,6 +85,15 @@ body {
 
 .word.active {
   color: var(--accent);
+}
+
+/* Destaque pontual: bloco sólido na cor de destaque (contraste alto sobre qualquer fundo). */
+.word.em {
+  padding: 0.02em 0.14em 0.06em;
+  background: var(--accent);
+  color: var(--text);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
 }
 
 /* Gancho e chamada final: tipografia cinética, palavras entram uma por batida. */
@@ -124,6 +134,33 @@ body {
   inset: -0.02em -0.12em -0.06em;
   background: var(--accent);
   z-index: -1;
+}
+
+/* Cartões: blocos sólidos empilhados no topo (dentro da zona segura); entram por revelação. */
+#cards {
+  position: absolute;
+  left: var(--safe-left);
+  right: var(--safe-right);
+  top: calc(var(--safe-top) + 24px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-size: 74px;
+  line-height: 1.04;
+  color: var(--text);
+}
+
+.cline {
+  display: inline-block;
+  white-space: nowrap;
+  padding: 0.1em 0.3em 0.04em;
+  background: var(--shadow);
+}
+
+.cline.accent {
+  background: var(--accent);
 }
 
 .logo {

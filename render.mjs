@@ -17,6 +17,7 @@ import { encodeVideo, verifyOutput } from './lib/encode.mjs';
 import { buildContactSheets, checkGate, currentHash, noveltyGaps, writeReviewReport, CRITERIA } from './lib/review.mjs';
 import { lintComposition } from './lib/lint.mjs';
 import { ffmpeg } from './lib/proc.mjs';
+import { pagesToSrt } from './lib/srt.mjs';
 
 const argv = process.argv.slice(2);
 const flag = (name) => argv.includes(name);
@@ -31,16 +32,16 @@ function printWarnings(warnings) {
   for (const w of warnings) log(`  ! ${w}`);
 }
 
-async function renderRange(paths, cfg, timeline, a, b, { workers }) {
+async function renderRange(paths, cfg, timeline, a, b, { workers, captions = true }) {
   const fps = cfg.format.fps;
   const first = frameIndexAt(a, fps);
   const last = Math.min(timeline.frameCount, Math.round(b * fps));
-  const dir = path.join(paths.renderFrames, `trecho-${first}-${last}`);
+  const dir = path.join(paths.renderFrames, `trecho-${first}-${last}${captions ? '' : '-sem-legendas'}`);
   fs.rmSync(dir, { recursive: true, force: true });
   ensureDir(dir);
   const jobs = [];
   for (let n = first; n < last; n++) jobs.push({ t: n / fps, file: path.join(dir, `${String(n - first).padStart(6, '0')}.jpg`) });
-  const comp = await openComposition(paths, timeline, { workers });
+  const comp = await openComposition(paths, timeline, { workers, captions });
   try {
     const t0 = Date.now();
     await renderFrameList(comp, jobs, {
@@ -134,27 +135,33 @@ async function main() {
     return;
   }
   const fps = cfg.format.fps;
-  const r = await renderRange(paths, cfg, timeline, 0, timeline.duration, { workers });
   ensureDir(paths.output);
-  const out = path.join(paths.output, `${cfg.output.name}.mp4`);
-  log('Codificando H.264…');
-  await encodeVideo({ framesPattern: path.join(r.dir, '%06d.jpg'), audioFile: path.join(paths.audio, 'final.wav'), outFile: out, cfg, frameCount: timeline.frameCount });
-  const ver = await verifyOutput(out, cfg, timeline.frameCount);
-  writeJson(path.join(paths.output, `${cfg.output.name}.json`), {
-    hash,
-    review: gate.last,
-    duration: timeline.duration,
-    frames: timeline.frameCount,
-    fps,
-    loudness: timeline.audio.loudness,
-    checks: ver.checks,
-    warnings,
-  });
-  for (const c of ver.checks) log(`  ${c.ok ? '✓' : '✗'} ${c.name} (${c.got})`);
-  if (!ver.ok) {
+  const audioFile = path.join(paths.audio, 'final.wav');
+  const versions = [
+    { captions: true, file: path.join(paths.output, `${cfg.output.name}.mp4`) },
+    { captions: false, file: path.join(paths.output, `${cfg.output.name}-sem-legendas.mp4`) },
+  ];
+  const report = { hash, review: gate.last, duration: timeline.duration, frames: timeline.frameCount, fps, loudness: timeline.audio.loudness, files: {}, warnings };
+  let allOk = true;
+  for (const v of versions) {
+    log(`\nRenderizando ${path.basename(v.file)}…`);
+    const r = await renderRange(paths, cfg, timeline, 0, timeline.duration, { workers, captions: v.captions });
+    log('Codificando H.264…');
+    await encodeVideo({ framesPattern: path.join(r.dir, '%06d.jpg'), audioFile, outFile: v.file, cfg, frameCount: timeline.frameCount });
+    const ver = await verifyOutput(v.file, cfg, timeline.frameCount);
+    report.files[path.basename(v.file)] = ver.checks;
+    for (const c of ver.checks) log(`  ${c.ok ? '✓' : '✗'} ${c.name} (${c.got})`);
+    allOk &&= ver.ok;
+    fs.rmSync(r.dir, { recursive: true, force: true });
+  }
+  // Arquivos auxiliares para futuras alterações.
+  fs.writeFileSync(path.join(paths.output, `${cfg.output.name}.srt`), pagesToSrt(timeline.captions));
+  fs.copyFileSync(paths.edl, path.join(paths.output, `${cfg.output.name}-edl.json`));
+  writeJson(path.join(paths.output, `${cfg.output.name}.json`), report);
+  if (!allOk) {
     process.exitCode = 1;
-    log('O arquivo final não passou em todas as verificações.');
-  } else log(`\nVídeo final: ${out}`);
+    log('Algum arquivo final não passou em todas as verificações.');
+  } else for (const v of versions) log(`\nVídeo final: ${v.file}`);
   printWarnings(warnings);
 }
 

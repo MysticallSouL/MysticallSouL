@@ -4,3 +4,15 @@ saida/*
 !saida/.gitkeep
 __pycache__/
 .DS_Store
+
+# Material e decisões de projetos reais (repositório público): fora do git por padrão.
+entrada/videos/*
+!entrada/videos/.gitkeep
+entrada/musica/*
+!entrada/musica/.gitkeep
+entrada/legendas/*
+!entrada/legendas/.gitkeep
+entrada/marca/*
+!entrada/marca/.gitkeep
+projeto/edl.json
+revisao/scorecard.json

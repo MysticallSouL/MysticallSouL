@@ -1,12 +1,13 @@
 // Composição: window.seek(t) pinta o quadro t a partir apenas da linha do tempo e de t.
 // Proibido aqui: Math.random, setTimeout/setInterval, requestAnimationFrame, relógio, transições CSS
 // e qualquer estado carregado entre quadros. Ruído vem de lib/noise.js (mulberry32 com semente).
-import { clamp, easeOutBack, easeOutCubic, lerp, progress, punchEnvelope } from './lib/ease.js';
+import { clamp, easeInOutCubic, easeOutBack, easeOutCubic, lerp, progress, punchEnvelope } from './lib/ease.js';
 import { noiseAt } from './lib/noise.js';
 
 const params = new URLSearchParams(location.search);
 const MODE = params.get('mode') || 'render';
 const TIMELINE_URL = params.get('timeline') || '/proj/build/timeline.json';
+const SHOW_CAPTIONS = params.get('captions') !== '0'; // versão sem legendas: ?captions=0
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -15,6 +16,7 @@ const el = {
   hook: $('hook'),
   cta: $('cta'),
   captions: $('captions'),
+  cards: $('cards'),
 };
 
 let TL = null; // linha do tempo imutável depois de carregada
@@ -45,6 +47,7 @@ async function init() {
   for (const k of ['top', 'bottom', 'left', 'right']) root.setProperty(`--safe-${k}`, `${TL.safeZone[k]}px`);
   root.setProperty('--caption-size', `${TL.captionStyle.fontSize}px`);
   root.setProperty('--caption-center', String(TL.captionStyle.centerY));
+  root.setProperty('--caption-font', TL.captionStyle.font === 'ui' ? 'var(--font-ui)' : 'var(--font-display)');
   await loadFonts(TL.brand.fonts);
   return true;
 }
@@ -69,7 +72,8 @@ function footageTransform(t, ci) {
   const clip = TL.clips[ci];
   const next = TL.clips[ci + 1];
   const m = TL.motion;
-  let scale = clip.zoom;
+  // Aproximação lenta ao longo do clipe (zoom -> zoomEnd), suave nas pontas.
+  let scale = lerp(clip.zoom, clip.zoomEnd ?? clip.zoom, easeInOutCubic(progress(t, clip.start, clip.duration)));
   // Punch de entrada em cada corte seco: entra mais perto e assenta.
   if (ci > 0 && clip.transitionIn === 'cut') scale *= lerp(m.cutPunchScale, 1, easeOutCubic(progress(t, clip.start, 0.3)));
   // Punches explícitos da EDL.
@@ -117,7 +121,7 @@ function paintCaptions(t) {
   const box = el.captions;
   box.replaceChildren();
   box.style.transform = 'none';
-  const page = TL.captions.find((p) => t >= p.start && t < p.end);
+  const page = SHOW_CAPTIONS && TL.captions.find((p) => t >= p.start && t < p.end);
   if (!page) return;
   // Entrada da página: leve encaixe de escala (sem fade).
   const enter = easeOutCubic(progress(t, page.start, 0.1));
@@ -127,6 +131,7 @@ function paintCaptions(t) {
     span.className = 'word';
     span.textContent = w.text;
     const active = TL.captionStyle.highlightActiveWord && t >= w.start && t < (w.end > w.start ? Math.max(w.end, w.start + 0.12) : w.start + 0.12);
+    if (w.em) span.classList.add('em');
     if (active) {
       span.classList.add('active');
       const pop = 1 - easeOutCubic(progress(t, w.start, 0.14));
@@ -167,6 +172,40 @@ function paintKinetic(container, type, t) {
   });
 }
 
+function paintCards(t) {
+  el.cards.replaceChildren();
+  const card = TL.texts.find((x) => x.type === 'card' && t >= x.start && t < x.end);
+  if (!card) return;
+  // Todas as linhas entram no layout (as futuras invisíveis): posições estáveis e um único
+  // tamanho de fonte por cartão, reduzido só o necessário para cada linha caber sem quebrar.
+  el.cards.style.fontSize = '';
+  const divs = card.lines.map((line) => {
+    const div = document.createElement('div');
+    div.className = line.accent ? 'cline accent' : 'cline';
+    div.textContent = line.text;
+    el.cards.append(div);
+    return div;
+  });
+  const avail = el.cards.clientWidth;
+  const widest = Math.max(...divs.map((d) => d.scrollWidth));
+  if (widest > avail) {
+    const base = parseFloat(getComputedStyle(el.cards).fontSize);
+    el.cards.style.fontSize = `${Math.floor((base * avail) / widest)}px`;
+  }
+  card.lines.forEach((line, i) => {
+    const div = divs[i];
+    if (t < line.at) {
+      div.style.visibility = 'hidden';
+      return;
+    }
+    // Entrada: revelação da esquerda para a direita com leve subida (sem fade).
+    // Linha que já começa no primeiro quadro aparece completa (o quadro 0 precisa comunicar).
+    const k = line.at <= 0 ? 1 : easeOutCubic(progress(t, line.at, 0.16));
+    div.style.clipPath = `inset(0 ${((1 - k) * 100).toFixed(2)}% 0 0)`;
+    div.style.transform = `translateY(${((1 - k) * 14).toFixed(2)}px)`;
+  });
+}
+
 // ---------- API pública ----------
 
 window.seek = async function seek(t) {
@@ -176,6 +215,7 @@ window.seek = async function seek(t) {
   paintCaptions(time);
   paintKinetic(el.hook, 'hook', time);
   paintKinetic(el.cta, 'cta', time);
+  paintCards(time);
   await decoding;
   const imgs = [...el.cta.querySelectorAll('img')];
   await Promise.all(imgs.map((i) => i.decode()));

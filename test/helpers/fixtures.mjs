@@ -42,13 +42,17 @@ export async function createFixtureProject({ seconds = 3, withEdl = true } = {})
       status: 'edited',
       clips: [
         { id: 'c01', source: 'teste-a.mp4', in: 0, out: 2, focus: { x: 0.3, y: 0.5 }, punches: [{ at: 1, scale: 1.15 }] },
-        { id: 'c02', source: 'teste-b.mp4', in: 0, out: 2, transitionIn: 'whip' },
+        { id: 'c02', source: 'teste-b.mp4', in: 0, out: 2, transitionIn: 'whip', zoom: 1, zoomEnd: 1.1 },
         { id: 'c03', source: 'teste-c.mp4', in: 0.5, out: 2.5, transitionIn: 'cut' },
       ],
       texts: [
         { type: 'hook', text: 'GANCHO DE TESTE', start: 0, end: 2 },
         { type: 'cta', text: 'FIM DO TESTE', start: 4.5, end: 6 },
+        { type: 'card', start: { clip: 'c02', t: 0.5 }, end: { clip: 'c02', t: 1.9 }, lines: [
+          { text: 'CARTÃO DE TESTE', accent: true }, { text: 'SEGUNDA LINHA', at: { clip: 'c02', t: 1.25 } },
+        ] },
       ],
+      emphasis: [{ clip: 'c02', word: 'tempo' }],
       sfx: [{ type: 'pop', at: 3 }],
     });
   }

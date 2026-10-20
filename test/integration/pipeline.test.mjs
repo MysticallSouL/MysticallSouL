@@ -47,6 +47,9 @@ test('preparação: linha do tempo, quadros, grade medida e loudness', () => {
   assert.ok(tl.captions.every((p) => p.words.every((w) => w.text === w.text.toLocaleUpperCase('pt-BR'))));
   assert.ok(prepared.warnings.some((w) => w.includes('Legendas pendentes') && w.includes('teste-c')));
   assert.equal(tl.texts[0].words[0].at, 0, 'gancho começa no quadro 0');
+  const card = tl.texts.find((x) => x.type === 'card');
+  assert.deepEqual(card.lines.map((l) => l.at), [2.5, 3.25], 'âncoras {clip, t} resolvidas para a linha do tempo');
+  assert.ok(tl.captions.some((p) => p.words.some((w) => w.em && w.text === 'TEMPO')), 'destaque pontual aplicado');
   const l = tl.audio.loudness;
   assert.ok(Math.abs(l.integratedLufs + 14) <= 0.5, `LUFS ${l.integratedLufs}`);
   assert.ok(l.truePeakDb <= -0.9, `pico ${l.truePeakDb}`);
@@ -75,6 +78,11 @@ test('seek(t) é função pura do tempo: mesma imagem independentemente da ordem
       assert.equal(a, c, `t=${t}: muda entre abas`);
     }
     assert.notEqual(await shot(p1, 0), await shot(p1, 0.0625), 'quadros consecutivos do gancho devem diferir');
+    for (const t of [2.75, 3.5]) {
+      const a = await shot(p1, t);
+      await shot(p1, 0.3);
+      assert.equal(a, await shot(p1, t), `cartão em t=${t} depende do quadro anterior`);
+    }
     assert.deepEqual(comp.errors, []);
   } finally {
     await comp.close();
@@ -98,7 +106,11 @@ test('folha de contato, trava de revisão e render final H.264', () => {
   const final = renderCli();
   assert.equal(final.status, 0, final.stderr + final.stdout);
   const meta = readJson(path.join(paths.output, 'mysticall-soul-final.json'));
-  for (const c of meta.checks) assert.ok(c.ok, `${c.name}: ${c.got}`);
+  assert.deepEqual(Object.keys(meta.files).sort(), ['mysticall-soul-final-sem-legendas.mp4', 'mysticall-soul-final.mp4']);
+  for (const checks of Object.values(meta.files)) for (const c of checks) assert.ok(c.ok, `${c.name}: ${c.got}`);
+  const srt = fs.readFileSync(path.join(paths.output, 'mysticall-soul-final.srt'), 'utf8');
+  assert.match(srt, /^1\n00:00:00,\d{3} --> /);
+  assert.ok(fs.existsSync(path.join(paths.output, 'mysticall-soul-final-edl.json')));
 });
 
 test('arquivo final: loudness após AAC dentro de ±1 LU de -14', async () => {

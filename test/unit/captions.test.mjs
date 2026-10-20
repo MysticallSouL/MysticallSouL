@@ -65,3 +65,23 @@ test('documento JSON com palavras + pipeline completo de páginas', () => {
   const pages = buildCaptionPages(mapWordsToTimeline({ 'v.mp4': words }, clips), DEFAULT_CONFIG);
   assert.deepEqual(pages[0].words.map((w) => w.text), ['OLÁ', 'MUNDO']);
 });
+
+test('destaque pontual: só a palavra escolhida, no clipe escolhido', () => {
+  const words = [
+    { text: 'uma', start: 0, end: 0.2, clip: 'c1', clipEnd: 5 },
+    { text: 'zona.', start: 0.2, end: 0.5, clip: 'c1', clipEnd: 5 },
+    { text: 'zona', start: 5, end: 5.3, clip: 'c2', clipEnd: 9 },
+  ];
+  const cfg = { captions: { ...DEFAULT_CONFIG.captions, uppercase: false, stripPunctuation: false } };
+  const pages = buildCaptionPages(words, cfg, [{ clip: 'c1', word: 'Zona' }]);
+  const flat = pages.flatMap((p) => p.words);
+  assert.deepEqual(flat.map((w) => [w.text, Boolean(w.em)]), [['uma', false], ['zona.', true], ['zona', false]]);
+});
+
+test('paginação: quebra depois de vírgula e não separa nomes próprios', () => {
+  const ws = 'teve discussão sobre o Banco Master, sobre corrupção e foi ontem entre Flávio Bolsonaro e Lula,'.split(' ');
+  const words = ws.map((text, i) => ({ text, start: i * 0.3, end: i * 0.3 + 0.25, clip: 'c1', clipEnd: 99 }));
+  const pages = paginate(words, { maxWordsPerPage: 4, maxCharsPerPage: 18, maxPageGap: 0.6 }).map((p) => p.words.map((w) => w.text).join(' '));
+  for (const pair of ['Banco Master,', 'Flávio Bolsonaro']) assert.ok(pages.some((p) => p.includes(pair)), `${pair} separado: ${JSON.stringify(pages)}`);
+  assert.ok(pages.every((p) => !/,\s/.test(p)), `vírgula no meio da página: ${JSON.stringify(pages)}`);
+});
